@@ -1,0 +1,30 @@
+# Third-Party Software and Notices
+
+This repository incorporates or uses third-party software and components.
+
+## 1. UVCGAN2
+
+- Original project: LS4GAN Project
+- Copyright: The LS4GAN Project Developers
+- Copyright period: 2021–2023
+- License: See `uvcgan2/LICENSE`.
+
+## 2. Additional Third-Party Components
+
+The following third-party components have their own copyright and license notices:
+
+- LS4GAN Project
+- pix2pix
+- DCGAN
+
+See `uvcgan2/uvcgan2/base/LICENSE` for their respective notices and license terms.
+
+## 3. Third-Party Dependencies
+
+External libraries, frameworks, and dependencies used by this project remain subject to their respective licenses. Users are responsible for complying with the applicable license terms.
+
+## 4. Original Research Implementation
+
+Original research code and modifications developed by Muhammad Ismail are distinguished from third-party components.
+
+Nothing in this notice transfers ownership of third-party software to the author of this research implementation.
