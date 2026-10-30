@@ -1,0 +1,173 @@
+# seGANmentation: Semantic Segmentation via GAN-Based Image-to-Image Translation
+
+This project explores the use of state-of-the-art Generative Adversarial Networks (GANs) for semantic segmentation tasks. By formulating segmentation as an image-to-image translation problem (Image-to-Label), this approach aims to leverage generative priors and adversarial training to improve segmentation performance, especially in scenarios where traditional supervised methods might struggle or require extensive manual labeling.
+
+The core implementation adapts [uvcgan2](https://github.com/LS4GAN/uvcgan2) for direct image-to-label translation, demonstrated initially on the Carvana car masking dataset. Additionally, standard segmentation baselines (U-Net, DeepLabV3+, LinkNet, and SegFormer) are provided for direct comparison.
+
+## Quick Start & Environment Setup
+
+Clone the repository and set up the conda environment:
+
+```bash
+git clone https://github.com/maryambrj/seGANmentation.git
+cd seGANmentation/uvcgan2
+conda env create -f contrib/conda_env.yaml
+conda activate uvcgan2
+python3 setup.py develop --user
+```
+
+## Dataset Preparation
+
+1. Download the Carvana dataset (`train.zip`) from the [Kaggle Carvana Image Masking Challenge](https://www.kaggle.com/competitions/carvana-image-masking-challenge/data).
+2. Extract and organize the data into the following structure:
+
+```text
+uvcgan2/
+└── data/
+    └── Carvana_resized/
+        ├── train/
+        │   ├── images/  (RGB photos)
+        │   └── masks/   (Binary masks)
+        └── val/
+            ├── images/
+            └── masks/
+```
+
+## 1. GAN-Based Segmentation (seGANmentation)
+
+We use UVCGAN2 configured for Image-to-Label translation.
+
+### Pre-training & Training
+
+First, pre-train the generator on the image domain, then train the full translation model:
+
+```bash
+python3 scripts/Carvana/pretrain_generator.py
+python3 scripts/Carvana/train_translation.py
+```
+*Models are saved to `outdir/Carvana_resized/` and `outdir/Carvana_resized/I2L`.*
+
+### Inference & Evaluation
+
+Translate validation images to segmentation masks and evaluate their performance (Accuracy, Dice, IoU, Precision, Recall):
+
+```bash
+python3 scripts/translate_images.py <PATH_TO_TRAINED_MODEL_in_outdir> --split val 
+python3 scripts/evaluate_segmentation.py
+```
+
+## 2. Standard Baselines (U-Net, DeepLabV3+, LinkNet, & SegFormer)
+
+To provide a robust comparison against the GAN approach, we include standard supervised segmentation baselines. These scripts use the same dataset structure, evaluation metrics, and general hyperparameters.
+
+### U-Net (ResNet-34)
+
+Train a U-Net model using `segmentation_models_pytorch`:
+
+```bash
+# Requires: pip install segmentation_models_pytorch
+python3 scripts/train_unet.py \
+    --data-root data/Carvana_resized \
+    --outdir outdir/unet \
+    --batch-size 16 \
+    --epochs 10 \
+    --lr 1e-5 \
+    --save-preds
+```
+
+### DeepLabV3+ (ResNet-34)
+
+Train a DeepLabV3+ model using `segmentation_models_pytorch`:
+
+```bash
+# Requires: pip install segmentation_models_pytorch
+python3 scripts/train_deeplabv3plus.py \
+    --data-root data/Carvana_resized \
+    --outdir outdir/deeplabv3plus \
+    --batch-size 16 \
+    --epochs 10 \
+    --lr 1e-5 \
+    --save-preds
+```
+
+### LinkNet (ResNet-34)
+
+Train a LinkNet model using `segmentation_models_pytorch`:
+
+```bash
+# Requires: pip install segmentation_models_pytorch
+python3 scripts/train_linknet.py \
+    --data-root data/Carvana_resized \
+    --outdir outdir/linknet \
+    --batch-size 16 \
+    --epochs 10 \
+    --lr 1e-5 \
+    --save-preds
+```
+
+### SegFormer (mit-b0)
+
+Train a SegFormer model using the Hugging Face `transformers` library:
+
+```bash
+# Requires: pip install transformers
+python3 scripts/train_segformer.py \
+    --data-root data/Carvana_resized \
+    --outdir outdir/segformer \
+    --batch-size 16 \
+    --epochs 10 \
+    --lr 1e-5 \
+    --save-preds
+```
+
+*The scripts output standard logs (`training_log.csv`), model checkpoints, and optionally save predictions to evaluate alongside the GAN results.*
+
+## 3. Evaluation
+
+All models are evaluated using a unified set of metrics. Make sure predictions have been saved (use `--save-preds` for baselines, or run `translate_images.py` for seGANmentation).
+
+### Available Metrics
+
+| Metric | Description |
+|--------|-------------|
+| **Dice** | Sørensen–Dice coefficient (2×intersection / sum of areas) |
+| **IoU** | Intersection over Union (Jaccard index) |
+| **Accuracy** | Pixel-level accuracy |
+| **Precision** | Positive Predictive Value (TP / (TP + FP)) |
+| **Recall** | True Positive Rate / Sensitivity (TP / (TP + FN)) |
+| **AP@0.5** | Average Precision at IoU ≥ 0.5 threshold (instance-level connected-component matching) |
+| **FID** | Fréchet Inception Distance for generated masks (InceptionV3 features, common for GANs) |
+
+### Individual Metric Scripts
+
+```bash
+# Dice / IoU / Accuracy / Precision / Recall
+python3 scripts/evaluate_segmentation.py \
+    --gt-folder <GT_MASK_DIR> \
+    --pred-folder <PRED_MASK_DIR> \
+    --save-csv summary_seg.csv
+
+# AP@0.5
+python3 scripts/evaluate_ap.py \
+    --gt-folder <GT_MASK_DIR> \
+    --pred-folder <PRED_MASK_DIR> \
+    --save-csv summary_ap.csv
+
+# FID for masks (requires: pip install torch-fidelity)
+python3 scripts/evaluate_fid_masks.py \
+    --gt-folder <GT_MASK_DIR> \
+    --pred-folder <PRED_MASK_DIR> \
+    --save-csv summary_fid.csv
+```
+
+### Unified Evaluation (All Models)
+
+Run all metrics across all four models at once:
+
+```bash
+python3 scripts/evaluate_all_models.py \
+    --output-csv evaluation_results.csv
+```
+
+This produces a comparison table and CSV with Dice, IoU, Accuracy, Precision, Recall, AP@0.5, and FID for each model. Use `--skip-fid` for faster runs without FID, or `--no-gpu` to run on CPU.
+
