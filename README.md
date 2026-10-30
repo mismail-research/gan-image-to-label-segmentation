@@ -1,4 +1,4 @@
-# seGANmentation: Semantic Segmentation via GAN-Based Image-to-Image Translation
+# Evaluating Generative Adversarial Networks for Image-to-Label Semantic Segmentation
 
 This project explores the use of state-of-the-art Generative Adversarial Networks (GANs) for semantic segmentation tasks. By formulating segmentation as an image-to-image translation problem (Image-to-Label), this approach aims to leverage generative priors and adversarial training to improve segmentation performance, especially in scenarios where traditional supervised methods might struggle or require extensive manual labeling.
 
